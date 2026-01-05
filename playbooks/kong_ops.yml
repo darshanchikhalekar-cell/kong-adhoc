@@ -1,32 +1,44 @@
 - name: Kong Ops – Adhoc Demo
   hosts: all
   gather_facts: false
-  become: false   # IMPORTANT
+  become: false
 
   tasks:
+
+    # ---------------- WHOAMI ----------------
     - name: Who am I
       raw: whoami
       register: whoami_out
       changed_when: false
+      when: kong_cmd == "whoami"
 
     - name: Whoami output
       debug:
         msg: "Executed as user: {{ whoami_out.stdout | trim }}"
+      when: kong_cmd == "whoami"
 
-    - name: Kong version
+
+    # ---------------- KONG VERSION ----------------
+    - name: Get Kong version
       raw: kong version
       register: kong_version
       changed_when: false
+      when: kong_cmd == "version"
 
     - name: Kong version output
       debug:
         msg: "Kong version: {{ kong_version.stdout | trim }}"
+      when: kong_cmd == "version"
 
-    - name: Kong status
+
+    # ---------------- KONG STATUS ----------------
+    - name: Get Kong status
       raw: sudo systemctl status kong --no-pager
       register: kong_status
       changed_when: false
+      when: kong_cmd == "status"
 
     - name: Kong status output
       debug:
         msg: "{{ kong_status.stdout_lines[0:5] }}"
+      when: kong_cmd == "status"
