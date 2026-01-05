@@ -1,11 +1,17 @@
-- name: Kong Ops – Adhoc Demo
+- name: Kong Ops – Adhoc Operations
   hosts: all
   gather_facts: false
-  become: false
+  become: false   # IMPORTANT: raw + sudo inside command
+
+  vars:
+    # safety default (if someone runs without survey)
+    kong_cmd: "whoami"
 
   tasks:
 
-    # ---------------- WHOAMI ----------------
+    # =========================
+    # WHOAMI
+    # =========================
     - name: Who am I
       raw: whoami
       register: whoami_out
@@ -18,7 +24,9 @@
       when: kong_cmd == "whoami"
 
 
-    # ---------------- KONG VERSION ----------------
+    # =========================
+    # KONG VERSION
+    # =========================
     - name: Get Kong version
       raw: kong version
       register: kong_version
@@ -31,14 +39,26 @@
       when: kong_cmd == "version"
 
 
-    # ---------------- KONG STATUS ----------------
-    - name: Get Kong status
-      raw: sudo systemctl status kong --no-pager
+    # =========================
+    # KONG STATUS (NON-INTERACTIVE)
+    # =========================
+    - name: Get Kong service status
+      raw: systemctl is-active kong
       register: kong_status
       changed_when: false
       when: kong_cmd == "status"
 
     - name: Kong status output
       debug:
-        msg: "{{ kong_status.stdout_lines[0:5] }}"
+        msg: "Kong service status: {{ kong_status.stdout | trim }}"
       when: kong_cmd == "status"
+
+
+    # =========================
+    # OPTIONAL: RESTART KONG
+    # =========================
+    - name: Restart Kong
+      raw: sudo systemctl restart kong
+      when: kong_cmd == "restart"
+
+    - name: Restart confirmation
