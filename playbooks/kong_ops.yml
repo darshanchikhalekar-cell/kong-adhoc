@@ -1,11 +1,10 @@
----
 - name: Kong Adhoc Operations
   hosts: all
   gather_facts: false
 
   tasks:
-    - name: Check who is running
-      command: whoami
+    - name: Check who is running (RAW)
+      raw: whoami
 
-    - name: Check Kong version
-      command: kong version
+    - name: Check Kong version (RAW)
+      raw: kong version
