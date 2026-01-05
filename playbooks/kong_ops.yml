@@ -1,7 +1,11 @@
 - name: Kong Ops – Adhoc Operations
   hosts: all
   gather_facts: false
-  become: false   # raw + sudo inside command
+  become: false   # raw + sudo inside command only
+
+  # ✅ DEFAULT FALLBACK (important)
+  vars:
+    kong_cmd: "{{ kong_cmd | default('whoami') }}"
 
   tasks:
 
@@ -12,12 +16,12 @@
       raw: whoami
       register: whoami_out
       changed_when: false
-      when: (kong_cmd | default('')) == "whoami"
+      when: kong_cmd == "whoami"
 
     - name: Whoami output
       debug:
         msg: "Executed as user: {{ whoami_out.stdout | trim }}"
-      when: (kong_cmd | default('')) == "whoami"
+      when: kong_cmd == "whoami"
 
 
     # =========================
@@ -27,27 +31,27 @@
       raw: kong version
       register: kong_version
       changed_when: false
-      when: (kong_cmd | default('')) == "version"
+      when: kong_cmd == "version"
 
     - name: Kong version output
       debug:
         msg: "Kong version: {{ kong_version.stdout | trim }}"
-      when: (kong_cmd | default('')) == "version"
+      when: kong_cmd == "version"
 
 
     # =========================
-    # KONG STATUS
+    # KONG STATUS (SAFE)
     # =========================
     - name: Get Kong service status
       raw: systemctl is-active kong
       register: kong_status
       changed_when: false
-      when: (kong_cmd | default('')) == "status"
+      when: kong_cmd == "status"
 
     - name: Kong status output
       debug:
         msg: "Kong service status: {{ kong_status.stdout | trim }}"
-      when: (kong_cmd | default('')) == "status"
+      when: kong_cmd == "status"
 
 
     # =========================
@@ -55,19 +59,28 @@
     # =========================
     - name: Restart Kong
       raw: sudo systemctl restart kong
-      when: (kong_cmd | default('')) == "restart"
+      when: kong_cmd == "restart"
 
     - name: Restart confirmation
       debug:
         msg: "Kong service restarted successfully"
-      when: (kong_cmd | default('')) == "restart"
+      when: kong_cmd == "restart"
 
 
     # =========================
-    # SUMMARY (ONLY IF CMD PROVIDED)
+    # SUMMARY (ALWAYS CLEAN)
     # =========================
     - name: Set summary stats
       set_stats:
         data:
           action: "{{ kong_cmd }}"
-      when: kong_cmd is defined
+          result: >-
+            {% if kong_cmd == 'whoami' %}
+            Executed as {{ whoami_out.stdout | trim }}
+            {% elif kong_cmd == 'version' %}
+            {{ kong_version.stdout | trim }}
+            {% elif kong_cmd == 'status' %}
+            Kong service is {{ kong_status.stdout | trim }}
+            {% elif kong_cmd == 'restart' %}
+            Kong restarted
+            {% endif %}
