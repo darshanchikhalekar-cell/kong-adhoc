@@ -55,18 +55,6 @@
       when: kong_cmd_final == "status"
 
     # =========================
-    # RESTART KONG
-    # =========================
-    - name: Restart Kong
-      raw: sudo systemctl restart kong
-      when: kong_cmd_final == "restart"
-
-    - name: Restart confirmation
-      debug:
-        msg: "Kong service restarted successfully"
-      when: kong_cmd_final == "restart"
-
-    # =========================
     # JOB SUMMARY (ALWAYS VISIBLE)
     # =========================
     - name: Set job summary
