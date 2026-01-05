@@ -1,0 +1,5 @@
+- name: Kong Adhoc Operations
+  hosts: kong
+  gather_facts: no
+  roles:
+    - kong_ops

@@ -1,0 +1,38 @@
+# 1️⃣ Run adhoc command (optional)
+- name: Run adhoc command
+  shell: "{{ adhoc_cmd }}"
+  register: adhoc_result
+  when:
+    - adhoc_cmd is defined
+    - adhoc_cmd | length > 0
+
+# 2️⃣ Validate kong_action
+- name: Validate kong_action
+  fail:
+    msg: "Invalid kong_action: {{ kong_action }}"
+  when:
+    - kong_action is defined
+    - kong_action not in [
+        'none',
+        'kong_start',
+        'kong_stop',
+        'kong_restart',
+        'fetch_access_logs',
+        'fetch_error_logs'
+      ]
+
+# 3️⃣ Logs
+- include_tasks: logs.yml
+  when: kong_action in ['fetch_access_logs', 'fetch_error_logs']
+
+# 4️⃣ Service
+- include_tasks: service.yml
+  when: kong_action in ['kong_start', 'kong_stop', 'kong_restart']
+
+# 5️⃣ Summary
+- name: Execution Summary
+  debug:
+    msg:
+      - "Adhoc Command : {{ adhoc_cmd | default('N/A') }}"
+      - "Kong Action   : {{ kong_action | default('none') }}"
+      - "Status        : SUCCESS"

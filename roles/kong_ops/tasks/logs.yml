@@ -1,0 +1,19 @@
+- name: Ensure local log directory
+  delegate_to: localhost
+  file:
+    path: /tmp/kong_logs
+    state: directory
+
+- name: Fetch access logs
+  fetch:
+    src: "{{ kong_log_dir }}/access.log"
+    dest: /tmp/kong_logs/access.log
+    flat: yes
+  when: kong_action == 'fetch_access_logs'
+
+- name: Fetch error logs
+  fetch:
+    src: "{{ kong_log_dir }}/error.log"
+    dest: /tmp/kong_logs/error.log
+    flat: yes
+  when: kong_action == 'fetch_error_logs'
