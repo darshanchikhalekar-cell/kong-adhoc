@@ -1,7 +1,7 @@
 - name: Kong Ops – Adhoc Operations
   hosts: all
   gather_facts: false
-  become: false   # raw + sudo inside command only
+  become: false
 
   tasks:
 
@@ -41,21 +41,45 @@
       when: kong_cmd_final == "version"
 
     # =========================
-    # KONG STATUS (SAFE)
+    # KONG STATUS (PROCESS / PORT BASED)
     # =========================
-    - name: Get Kong service status
-      raw: systemctl is-active kong || true
+    - name: Check Kong process status
+      raw: pgrep -f kong || true
       register: kong_status
       changed_when: false
       when: kong_cmd_final == "status"
 
     - name: Kong status output
       debug:
-        msg: "Kong service status: {{ kong_status.stdout | trim }}"
+        msg: >-
+          {% if kong_status.stdout | trim == '' %}
+          Kong process is NOT running
+          {% else %}
+          Kong process is RUNNING
+          {% endif %}
       when: kong_cmd_final == "status"
 
     # =========================
-    # JOB SUMMARY (ALWAYS VISIBLE)
+    # KONG HEALTH (APPLICATION LEVEL)
+    # =========================
+    - name: Check Kong health
+      raw: kong health || true
+      register: kong_health
+      changed_when: false
+      when: kong_cmd_final == "health"
+
+    - name: Kong health output
+      debug:
+        msg: >-
+          {% if kong_health.stdout | trim == '' %}
+          Kong health check FAILED
+          {% else %}
+          Kong health is OK
+          {% endif %}
+      when: kong_cmd_final == "health"
+
+    # =========================
+    # JOB SUMMARY (STATS TAB)
     # =========================
     - name: Set job summary
       set_stats:
@@ -63,13 +87,19 @@
           action: "{{ kong_cmd_final }}"
           result: >-
             {% if kong_cmd_final == 'whoami' %}
-            Executed as {{ whoami_out.stdout | default('') | trim }}
+            Executed as {{ whoami_out.stdout | trim }}
             {% elif kong_cmd_final == 'version' %}
-            {{ kong_version.stdout | default('') | trim }}
+            {{ kong_version.stdout | trim }}
             {% elif kong_cmd_final == 'status' %}
-            Kong service is {{ kong_status.stdout | default('') | trim }}
-            {% elif kong_cmd_final == 'restart' %}
-            Kong restarted successfully
+            {% if kong_status.stdout | trim == '' %}
+            Kong process is NOT running
             {% else %}
-            No action executed
+            Kong process is RUNNING
+            {% endif %}
+            {% elif kong_cmd_final == 'health' %}
+            {% if kong_health.stdout | trim == '' %}
+            Kong health FAILED
+            {% else %}
+            Kong health OK
+            {% endif %}
             {% endif %}
