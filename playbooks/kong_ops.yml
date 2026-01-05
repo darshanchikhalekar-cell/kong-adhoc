@@ -6,9 +6,9 @@
   tasks:
 
     # =========================
-    # NORMALIZE INPUT (SAFE DEFAULT)
+    # NORMALIZE SURVEY INPUT
     # =========================
-    - name: Set kong_cmd default if not provided
+    - name: Normalize kong command
       set_fact:
         kong_cmd_final: "{{ kong_cmd | default('whoami') }}"
 
@@ -26,7 +26,6 @@
         msg: "Executed as user: {{ whoami_out.stdout | trim }}"
       when: kong_cmd_final == "whoami"
 
-
     # =========================
     # KONG VERSION
     # =========================
@@ -41,12 +40,11 @@
         msg: "Kong version: {{ kong_version.stdout | trim }}"
       when: kong_cmd_final == "version"
 
-
     # =========================
-    # KONG STATUS
+    # KONG STATUS (SAFE)
     # =========================
     - name: Get Kong service status
-      raw: systemctl is-active kong
+      raw: systemctl is-active kong || true
       register: kong_status
       changed_when: false
       when: kong_cmd_final == "status"
@@ -55,7 +53,6 @@
       debug:
         msg: "Kong service status: {{ kong_status.stdout | trim }}"
       when: kong_cmd_final == "status"
-
 
     # =========================
     # RESTART KONG
@@ -69,21 +66,22 @@
         msg: "Kong service restarted successfully"
       when: kong_cmd_final == "restart"
 
-
     # =========================
-    # SUMMARY (CLEAN & SAFE)
+    # JOB SUMMARY (ALWAYS VISIBLE)
     # =========================
-    - name: Set summary stats
+    - name: Set job summary
       set_stats:
         data:
           action: "{{ kong_cmd_final }}"
           result: >-
             {% if kong_cmd_final == 'whoami' %}
-            Executed as {{ whoami_out.stdout | trim }}
+            Executed as {{ whoami_out.stdout | default('') | trim }}
             {% elif kong_cmd_final == 'version' %}
-            {{ kong_version.stdout | trim }}
+            {{ kong_version.stdout | default('') | trim }}
             {% elif kong_cmd_final == 'status' %}
-            Kong service is {{ kong_status.stdout | trim }}
+            Kong service is {{ kong_status.stdout | default('') | trim }}
             {% elif kong_cmd_final == 'restart' %}
-            Kong restarted
+            Kong restarted successfully
+            {% else %}
+            No action executed
             {% endif %}
