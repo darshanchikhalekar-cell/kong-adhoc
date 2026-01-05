@@ -73,18 +73,22 @@
     # JOB SUMMARY (STATS TAB)
     # =========================
     - name: Job Summary
-      set_stats:
-        data:
-          cmd_selected: "{{ kong_cmd_final }}"
-          action_selected: "{{ kong_action_final }}"
-          execution: "{{ 'ACTION' if kong_action_final != 'none' else 'CMD' }}"
-          result: >-
-            {% if kong_action_final == 'kong_start' %}
-            Kong started successfully
-            {% elif kong_action_final == 'kong_stop' %}
-            Kong stopped successfully
-            {% elif kong_action_final == 'kong_restart' %}
-            Kong restarted successfully
-            {% else %}
-            Whoami executed as {{ whoami_out.stdout | trim }}
-            {% endif %}
+  set_stats:
+    data:
+      cmd_selected: "{{ kong_cmd_final }}"
+      action_selected: "{{ kong_action_final }}"
+      execution_mode: "{{ 'ACTION' if kong_action_final != 'none' else 'CMD' }}"
+      result: >-
+        {% if kong_action_final == 'kong_start' %}
+        Kong started successfully
+        {% elif kong_action_final == 'kong_stop' %}
+        Kong stopped successfully
+        {% elif kong_action_final == 'kong_restart' %}
+        Kong restarted successfully
+        {% elif kong_action_final == 'fetch_access_logs' %}
+        Access logs displayed in job output
+        {% elif kong_action_final == 'fetch_error_logs' %}
+        Error logs displayed in job output
+        {% else %}
+        Adhoc command executed successfully
+        {% endif %}
