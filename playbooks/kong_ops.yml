@@ -1,105 +1,65 @@
 - name: Kong Ops – Adhoc Operations
   hosts: all
   gather_facts: false
-  become: false
 
   tasks:
 
     # =========================
-    # NORMALIZE SURVEY INPUT
+    # NORMALIZE INPUTS
     # =========================
-    - name: Normalize kong command
+    - name: Normalize inputs
       set_fact:
         kong_cmd_final: "{{ kong_cmd | default('whoami') }}"
+        kong_action_final: "{{ kong_action | default('none') }}"
 
     # =========================
-    # WHOAMI
+    # RUN CMD (ONLY IF NO ACTION)
     # =========================
     - name: Who am I
       raw: whoami
       register: whoami_out
       changed_when: false
-      when: kong_cmd_final == "whoami"
+      when:
+        - kong_action_final == 'none'
+        - kong_cmd_final == "whoami"
 
     - name: Whoami output
       debug:
         msg: "Executed as user: {{ whoami_out.stdout | trim }}"
-      when: kong_cmd_final == "whoami"
+      when:
+        - kong_action_final == 'none'
+        - kong_cmd_final == "whoami"
 
     # =========================
-    # KONG VERSION
+    # ACTION: START KONG
     # =========================
-    - name: Get Kong version
-      raw: kong version
-      register: kong_version
-      changed_when: false
-      when: kong_cmd_final == "version"
-
-    - name: Kong version output
-      debug:
-        msg: "Kong version: {{ kong_version.stdout | trim }}"
-      when: kong_cmd_final == "version"
+    - name: Start Kong
+      become: true
+      shell: kong start
+      when: kong_action_final == "kong_start"
 
     # =========================
-    # KONG STATUS (PROCESS / PORT BASED)
+    # ACTION: STOP KONG
     # =========================
-    - name: Check Kong process status
-      raw: pgrep -f kong || true
-      register: kong_status
-      changed_when: false
-      when: kong_cmd_final == "status"
-
-    - name: Kong status output
-      debug:
-        msg: >-
-          {% if kong_status.stdout | trim == '' %}
-          Kong process is NOT running
-          {% else %}
-          Kong process is RUNNING
-          {% endif %}
-      when: kong_cmd_final == "status"
+    - name: Stop Kong
+      become: true
+      shell: kong stop
+      when: kong_action_final == "kong_stop"
 
     # =========================
-    # KONG HEALTH (APPLICATION LEVEL)
+    # ACTION: RESTART KONG
     # =========================
-    - name: Check Kong health
-      raw: kong health || true
-      register: kong_health
-      changed_when: false
-      when: kong_cmd_final == "health"
-
-    - name: Kong health output
-      debug:
-        msg: >-
-          {% if kong_health.stdout | trim == '' %}
-          Kong health check FAILED
-          {% else %}
-          Kong health is OK
-          {% endif %}
-      when: kong_cmd_final == "health"
+    - name: Restart Kong
+      become: true
+      shell: kong restart
+      when: kong_action_final == "kong_restart"
 
     # =========================
-    # JOB SUMMARY (STATS TAB)
+    # SUMMARY
     # =========================
-    - name: Set job summary
+    - name: Job Summary
       set_stats:
         data:
-          action: "{{ kong_cmd_final }}"
-          result: >-
-            {% if kong_cmd_final == 'whoami' %}
-            Executed as {{ whoami_out.stdout | trim }}
-            {% elif kong_cmd_final == 'version' %}
-            {{ kong_version.stdout | trim }}
-            {% elif kong_cmd_final == 'status' %}
-            {% if kong_status.stdout | trim == '' %}
-            Kong process is NOT running
-            {% else %}
-            Kong process is RUNNING
-            {% endif %}
-            {% elif kong_cmd_final == 'health' %}
-            {% if kong_health.stdout | trim == '' %}
-            Kong health FAILED
-            {% else %}
-            Kong health OK
-            {% endif %}
-            {% endif %}
+          cmd: "{{ kong_cmd_final }}"
+          action: "{{ kong_action_final }}"
+          execution: "{{ 'ACTION' if kong_action_final != 'none' else 'CMD' }}"
