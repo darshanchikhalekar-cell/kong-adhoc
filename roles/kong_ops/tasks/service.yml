@@ -1,11 +1,11 @@
 - name: Start Kong
   shell: /usr/bin/node /usr/local/bin/kong start
-  when: kong_action == 'kong_start'
+  when: kong_action | default('') == "kong_start"
 
 - name: Stop Kong
   shell: /usr/bin/node /usr/local/bin/kong stop
-  when: kong_action == 'kong_stop'
+  when: kong_action | default('') == "kong_stop"
 
 - name: Restart Kong
   shell: /usr/bin/node /usr/local/bin/kong restart
-  when: kong_action == 'kong_restart'
+  when: kong_action | default('') == "kong_restart"
