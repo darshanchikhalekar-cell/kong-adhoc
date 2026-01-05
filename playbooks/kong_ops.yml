@@ -12,9 +12,11 @@
         kong_cmd_final: "{{ kong_cmd | default('whoami') }}"
         kong_action_final: "{{ kong_action | default('none') }}"
 
-    # =========================
+    # =================================================
     # CMD (ONLY IF NO ACTION)
-    # =========================
+    # =================================================
+
+    # WHOAMI
     - name: Who am I
       raw: whoami
       register: whoami_out
@@ -30,30 +32,98 @@
         - kong_action_final == 'none'
         - kong_cmd_final == "whoami"
 
-    # =========================
-    # ACTION: START KONG
-    # =========================
+    # VERSION
+    - name: Kong version
+      raw: kong version
+      register: kong_version
+      changed_when: false
+      when:
+        - kong_action_final == 'none'
+        - kong_cmd_final == "version"
+
+    - name: Kong version output
+      debug:
+        msg: "{{ kong_version.stdout | trim }}"
+      when:
+        - kong_action_final == 'none'
+        - kong_cmd_final == "version"
+
+    # STATUS (PROCESS BASED)
+    - name: Kong status
+      raw: pgrep -f kong || true
+      register: kong_status
+      changed_when: false
+      when:
+        - kong_action_final == 'none'
+        - kong_cmd_final == "status"
+
+    - name: Kong status output
+      debug:
+        msg: >-
+          {% if kong_status.stdout | trim == '' %}
+          Kong process is NOT running
+          {% else %}
+          Kong process is RUNNING
+          {% endif %}
+      when:
+        - kong_action_final == 'none'
+        - kong_cmd_final == "status"
+
+    # HEALTH
+    - name: Kong health
+      raw: kong health || true
+      register: kong_health
+      changed_when: false
+      when:
+        - kong_action_final == 'none'
+        - kong_cmd_final == "health"
+
+    - name: Kong health output
+      debug:
+        msg: >-
+          {% if kong_health.stdout | trim == '' %}
+          Kong health FAILED
+          {% else %}
+          Kong health OK
+          {% endif %}
+      when:
+        - kong_action_final == 'none'
+        - kong_cmd_final == "health"
+
+    # =================================================
+    # ACTIONS
+    # =================================================
+
     - name: Start Kong
       raw: sudo kong start
       when: kong_action_final == "kong_start"
 
-    # =========================
-    # ACTION: STOP KONG
-    # =========================
+    - name: Start Kong success
+      debug:
+        msg: "✅ Kong started successfully"
+      when: kong_action_final == "kong_start"
+
     - name: Stop Kong
       raw: sudo kong stop
       when: kong_action_final == "kong_stop"
 
-    # =========================
-    # ACTION: RESTART KONG
-    # =========================
+    - name: Stop Kong success
+      debug:
+        msg: "🛑 Kong stopped successfully"
+      when: kong_action_final == "kong_stop"
+
     - name: Restart Kong
       raw: sudo kong restart
       when: kong_action_final == "kong_restart"
 
-    # =========================
-    # JOB SUMMARY (MUST BE A TASK)
-    # =========================
+    - name: Restart Kong success
+      debug:
+        msg: "🔁 Kong restarted successfully"
+      when: kong_action_final == "kong_restart"
+
+    # =================================================
+    # JOB SUMMARY (INPUT-BASED, SAFE)
+    # =================================================
     - name: Job Summary
       set_stats:
         data:
@@ -67,10 +137,6 @@
             Kong stopped successfully
             {% elif kong_action_final == 'kong_restart' %}
             Kong restarted successfully
-            {% elif kong_action_final == 'fetch_access_logs' %}
-            Access logs displayed in job output
-            {% elif kong_action_final == 'fetch_error_logs' %}
-            Error logs displayed in job output
             {% else %}
-            Adhoc command executed successfully
+            Command {{ kong_cmd_final }} executed successfully
             {% endif %}
