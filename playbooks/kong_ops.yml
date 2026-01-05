@@ -35,12 +35,6 @@
     # =========================
     - name: Start Kong
       raw: sudo kong start
-      register: kong_start_out
-      when: kong_action_final == "kong_start"
-
-    - name: Start Kong result
-      debug:
-        msg: "✅ Kong started successfully"
       when: kong_action_final == "kong_start"
 
     # =========================
@@ -48,12 +42,6 @@
     # =========================
     - name: Stop Kong
       raw: sudo kong stop
-      register: kong_stop_out
-      when: kong_action_final == "kong_stop"
-
-    - name: Stop Kong result
-      debug:
-        msg: "🛑 Kong stopped successfully"
       when: kong_action_final == "kong_stop"
 
     # =========================
@@ -61,34 +49,28 @@
     # =========================
     - name: Restart Kong
       raw: sudo kong restart
-      register: kong_restart_out
-      when: kong_action_final == "kong_restart"
-
-    - name: Restart Kong result
-      debug:
-        msg: "🔁 Kong restarted successfully"
       when: kong_action_final == "kong_restart"
 
     # =========================
-    # JOB SUMMARY (STATS TAB)
+    # JOB SUMMARY (MUST BE A TASK)
     # =========================
     - name: Job Summary
-  set_stats:
-    data:
-      cmd_selected: "{{ kong_cmd_final }}"
-      action_selected: "{{ kong_action_final }}"
-      execution_mode: "{{ 'ACTION' if kong_action_final != 'none' else 'CMD' }}"
-      result: >-
-        {% if kong_action_final == 'kong_start' %}
-        Kong started successfully
-        {% elif kong_action_final == 'kong_stop' %}
-        Kong stopped successfully
-        {% elif kong_action_final == 'kong_restart' %}
-        Kong restarted successfully
-        {% elif kong_action_final == 'fetch_access_logs' %}
-        Access logs displayed in job output
-        {% elif kong_action_final == 'fetch_error_logs' %}
-        Error logs displayed in job output
-        {% else %}
-        Adhoc command executed successfully
-        {% endif %}
+      set_stats:
+        data:
+          cmd_selected: "{{ kong_cmd_final }}"
+          action_selected: "{{ kong_action_final }}"
+          execution_mode: "{{ 'ACTION' if kong_action_final != 'none' else 'CMD' }}"
+          result: >-
+            {% if kong_action_final == 'kong_start' %}
+            Kong started successfully
+            {% elif kong_action_final == 'kong_stop' %}
+            Kong stopped successfully
+            {% elif kong_action_final == 'kong_restart' %}
+            Kong restarted successfully
+            {% elif kong_action_final == 'fetch_access_logs' %}
+            Access logs displayed in job output
+            {% elif kong_action_final == 'fetch_error_logs' %}
+            Error logs displayed in job output
+            {% else %}
+            Adhoc command executed successfully
+            {% endif %}
