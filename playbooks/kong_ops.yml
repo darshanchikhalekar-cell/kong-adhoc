@@ -13,7 +13,7 @@
         kong_action_final: "{{ kong_action | default('none') }}"
 
     # =========================
-    # RUN CMD (ONLY IF NO ACTION)
+    # CMD (ONLY IF NO ACTION)
     # =========================
     - name: Who am I
       raw: whoami
@@ -34,24 +34,21 @@
     # ACTION: START KONG
     # =========================
     - name: Start Kong
-      become: true
-      shell: kong start
+      raw: sudo kong start
       when: kong_action_final == "kong_start"
 
     # =========================
     # ACTION: STOP KONG
     # =========================
     - name: Stop Kong
-      become: true
-      shell: kong stop
+      raw: sudo kong stop
       when: kong_action_final == "kong_stop"
 
     # =========================
     # ACTION: RESTART KONG
     # =========================
     - name: Restart Kong
-      become: true
-      shell: kong restart
+      raw: sudo kong restart
       when: kong_action_final == "kong_restart"
 
     # =========================
