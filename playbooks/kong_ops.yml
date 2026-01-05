@@ -12,12 +12,12 @@
       raw: whoami
       register: whoami_out
       changed_when: false
-      when: kong_cmd == "whoami"
+      when: (kong_cmd | default('')) == "whoami"
 
     - name: Whoami output
       debug:
         msg: "Executed as user: {{ whoami_out.stdout | trim }}"
-      when: kong_cmd == "whoami"
+      when: (kong_cmd | default('')) == "whoami"
 
 
     # =========================
@@ -27,12 +27,12 @@
       raw: kong version
       register: kong_version
       changed_when: false
-      when: kong_cmd == "version"
+      when: (kong_cmd | default('')) == "version"
 
     - name: Kong version output
       debug:
         msg: "Kong version: {{ kong_version.stdout | trim }}"
-      when: kong_cmd == "version"
+      when: (kong_cmd | default('')) == "version"
 
 
     # =========================
@@ -42,12 +42,12 @@
       raw: systemctl is-active kong
       register: kong_status
       changed_when: false
-      when: kong_cmd == "status"
+      when: (kong_cmd | default('')) == "status"
 
     - name: Kong status output
       debug:
         msg: "Kong service status: {{ kong_status.stdout | trim }}"
-      when: kong_cmd == "status"
+      when: (kong_cmd | default('')) == "status"
 
 
     # =========================
@@ -55,28 +55,19 @@
     # =========================
     - name: Restart Kong
       raw: sudo systemctl restart kong
-      when: kong_cmd == "restart"
+      when: (kong_cmd | default('')) == "restart"
 
     - name: Restart confirmation
       debug:
         msg: "Kong service restarted successfully"
-      when: kong_cmd == "restart"
+      when: (kong_cmd | default('')) == "restart"
 
 
     # =========================
-    # SUMMARY
+    # SUMMARY (ONLY IF CMD PROVIDED)
     # =========================
     - name: Set summary stats
       set_stats:
         data:
           action: "{{ kong_cmd }}"
-          result: >-
-            {% if kong_cmd == 'whoami' %}
-            Executed as {{ whoami_out.stdout | trim }}
-            {% elif kong_cmd == 'version' %}
-            {{ kong_version.stdout | trim }}
-            {% elif kong_cmd == 'status' %}
-            Kong service is {{ kong_status.stdout | trim }}
-            {% elif kong_cmd == 'restart' %}
-            Kong restarted
-            {% endif %}
+      when: kong_cmd is defined
