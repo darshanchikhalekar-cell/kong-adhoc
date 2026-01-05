@@ -3,9 +3,6 @@
   gather_facts: false
   become: false   # raw + sudo inside command
 
-  vars:
-    kong_cmd: "whoami"   # safe default
-
   tasks:
 
     # =========================
@@ -39,7 +36,7 @@
 
 
     # =========================
-    # KONG STATUS (NON-INTERACTIVE)
+    # KONG STATUS
     # =========================
     - name: Get Kong service status
       raw: systemctl is-active kong
