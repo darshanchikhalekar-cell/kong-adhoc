@@ -1,11 +1,10 @@
 - name: Kong Ops – Adhoc Operations
   hosts: all
   gather_facts: false
-  become: false   # IMPORTANT: raw + sudo inside command
+  become: false   # raw + sudo inside command
 
   vars:
-    # safety default (if someone runs without survey)
-    kong_cmd: "whoami"
+    kong_cmd: "whoami"   # safe default
 
   tasks:
 
@@ -55,10 +54,32 @@
 
 
     # =========================
-    # OPTIONAL: RESTART KONG
+    # RESTART KONG
     # =========================
     - name: Restart Kong
       raw: sudo systemctl restart kong
       when: kong_cmd == "restart"
 
     - name: Restart confirmation
+      debug:
+        msg: "Kong service restarted successfully"
+      when: kong_cmd == "restart"
+
+
+    # =========================
+    # SUMMARY
+    # =========================
+    - name: Set summary stats
+      set_stats:
+        data:
+          action: "{{ kong_cmd }}"
+          result: >-
+            {% if kong_cmd == 'whoami' %}
+            Executed as {{ whoami_out.stdout | trim }}
+            {% elif kong_cmd == 'version' %}
+            {{ kong_version.stdout | trim }}
+            {% elif kong_cmd == 'status' %}
+            Kong service is {{ kong_status.stdout | trim }}
+            {% elif kong_cmd == 'restart' %}
+            Kong restarted
+            {% endif %}
