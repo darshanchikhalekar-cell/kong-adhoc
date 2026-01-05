@@ -5,6 +5,21 @@
   tasks:
     - name: Check who is running (RAW)
       raw: whoami
+      register: whoami_out
 
     - name: Check Kong version (RAW)
       raw: kong version
+      register: kong_version
+
+    - name: Print output in logs
+      debug:
+        msg:
+          - "Executed as user: {{ whoami_out.stdout }}"
+          - "Kong version: {{ kong_version.stdout }}"
+
+    - name: Set summary stats
+      set_stats:
+        data:
+          executed_user: "{{ whoami_out.stdout }}"
+          kong_version: "{{ kong_version.stdout }}"
+          demo_status: "SUCCESS"
