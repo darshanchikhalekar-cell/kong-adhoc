@@ -1,25 +1,32 @@
-- name: Kong Adhoc Operations
+- name: Kong Ops – Adhoc Demo
   hosts: all
   gather_facts: false
 
   tasks:
-    - name: Check who is running (RAW)
+
+    - name: Who am I
       raw: whoami
       register: whoami_out
+      changed_when: false
 
-    - name: Check Kong version (RAW)
+    - name: Whoami output
+      debug:
+        msg: "Executed as user: {{ whoami_out.stdout_lines[0] }}"
+
+    - name: Kong version
       raw: kong version
       register: kong_version
+      changed_when: false
 
-    - name: Print output in logs
+    - name: Kong version output
       debug:
-        msg:
-          - "Executed as user: {{ whoami_out.stdout }}"
-          - "Kong version: {{ kong_version.stdout }}"
+        msg: "{{ kong_version.stdout_lines[0] }}"
 
-    - name: Set summary stats
-      set_stats:
-        data:
-          executed_user: "{{ whoami_out.stdout }}"
-          kong_version: "{{ kong_version.stdout }}"
-          demo_status: "SUCCESS"
+    - name: Kong status
+      raw: systemctl status kong --no-pager
+      register: kong_status
+      changed_when: false
+
+    - name: Kong status output
+      debug:
+        msg: "{{ kong_status.stdout_lines[0:5] }}"
