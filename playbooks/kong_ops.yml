@@ -2,6 +2,7 @@
 - name: Kong Ops – Adhoc Operations
   hosts: all
   gather_facts: false
+  become: false   # 🔴 IMPORTANT: disable sudo
 
   vars:
     kong_bin: /usr/local/bin/kong
@@ -96,22 +97,9 @@
       when: kong_action_final == 'access_logs'
 
     # =========================
-    # KONG START
+    # SAFE NOTICE FOR START/STOP/RESTART
     # =========================
-    - name: Kong start
-      raw: "{{ kong_bin }} start"
-      when: kong_action_final == 'start'
-
-    # =========================
-    # KONG STOP
-    # =========================
-    - name: Kong stop
-      raw: "{{ kong_bin }} stop"
-      when: kong_action_final == 'stop'
-
-    # =========================
-    # KONG RESTART
-    # =========================
-    - name: Kong restart
-      raw: "{{ kong_bin }} restart"
-      when: kong_action_final == 'restart'
+    - name: Start/Stop/Restart not enabled (sudo disabled)
+      debug:
+        msg: "Start/Stop/Restart requires sudo. Enable passwordless sudo for kong user to use these actions."
+      when: kong_action_final in ['start', 'stop', 'restart']
