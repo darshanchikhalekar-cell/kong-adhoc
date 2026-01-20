@@ -11,90 +11,147 @@
 
   tasks:
 
+    # Normalize survey input
     - name: Normalize survey input
       set_fact:
         kong_action_final: "{{ kong_action | default('whoami') }}"
 
-    # READ-ONLY COMMANDS (NO SUDO)
-
+    # =========================
+    # WHOAMI
+    # =========================
     - name: Who am I
       raw: whoami
       register: whoami_out
       changed_when: false
       when: kong_action_final == 'whoami'
 
-    - debug:
+    - name: Whoami result
+      debug:
         msg: "Executed as user: {{ whoami_out.stdout }}"
       when: kong_action_final == 'whoami'
 
+    # =========================
+    # KONG HEALTH
+    # =========================
     - name: Kong health
       raw: "{{ kong_bin }} health"
       register: kong_health
       changed_when: false
       when: kong_action_final == 'health'
 
-    - debug:
-        msg: "{{ kong_health.stdout }}"
+    - name: Kong health result
+      debug:
+        msg: "Kong health status: {{ kong_health.stdout }}"
       when: kong_action_final == 'health'
 
+    # =========================
+    # KONG STATUS
+    # =========================
     - name: Kong status
       raw: "{{ kong_bin }} status"
       register: kong_status
       changed_when: false
       when: kong_action_final == 'status'
 
-    - debug:
+    - name: Kong status result
+      debug:
         msg: "{{ kong_status.stdout }}"
       when: kong_action_final == 'status'
 
+    # =========================
+    # KONG VERSION
+    # =========================
     - name: Kong version
       raw: "{{ kong_bin }} version"
       register: kong_version
       changed_when: false
       when: kong_action_final == 'version'
 
-    - debug:
-        msg: "{{ kong_version.stdout }}"
+    - name: Kong version result
+      debug:
+        msg: "Kong version: {{ kong_version.stdout }}"
       when: kong_action_final == 'version'
 
+    # =========================
+    # ERROR LOGS
+    # =========================
     - name: Kong error logs
       raw: "tail -n 50 {{ kong_error_log }}"
       register: kong_error_logs
       changed_when: false
       when: kong_action_final == 'error_logs'
 
-    - debug:
+    - name: Kong error logs result
+      debug:
         msg: "{{ kong_error_logs.stdout }}"
       when: kong_action_final == 'error_logs'
 
+    # =========================
+    # ACCESS LOGS
+    # =========================
     - name: Kong access logs
       raw: "tail -n 50 {{ kong_access_log }}"
       register: kong_access_logs
       changed_when: false
       when: kong_action_final == 'access_logs'
 
-    - debug:
+    - name: Kong access logs result
+      debug:
         msg: "{{ kong_access_logs.stdout }}"
       when: kong_action_final == 'access_logs'
 
-    # CONTROL COMMANDS (REQUIRE SUDO)
-
+    # =========================
+    # KONG START
+    # =========================
     - name: Kong start
       raw: "{{ kong_bin }} start"
       become: true
+      register: kong_start
       when: kong_action_final == 'start'
 
+    - name: Kong start result
+      debug:
+        msg: "✅ Kong started successfully"
+      when: kong_action_final == 'start'
+
+    # =========================
+    # KONG STOP
+    # =========================
     - name: Kong stop
       raw: "{{ kong_bin }} stop"
       become: true
+      register: kong_stop
       when: kong_action_final == 'stop'
 
+    - name: Kong stop result
+      debug:
+        msg: "🛑 Kong stopped successfully"
+      when: kong_action_final == 'stop'
+
+    # =========================
+    # KONG RELOAD
+    # =========================
     - name: Kong reload
       raw: "{{ kong_bin }} reload"
       become: true
+      register: kong_reload
       when: kong_action_final == 'reload'
 
+    - name: Kong reload result
+      debug:
+        msg: "🔄 Kong reloaded successfully"
+      when: kong_action_final == 'reload'
+
+    # =========================
+    # KONG RESTART
+    # =========================
     - name: Kong restart
       raw: "{{ kong_bin }} restart"
       become: true
+      register: kong_restart
+      when: kong_action_final == 'restart'
+
+    - name: Kong restart result
+      debug:
+        msg: "🔁 Kong restarted successfully"
       when: kong_action_final == 'restart'
