@@ -2,7 +2,7 @@
 - name: Kong Ops – Adhoc Operations
   hosts: all
   gather_facts: false
-  become: false   # 🔴 IMPORTANT: disable sudo
+  become: false   # default: no sudo
 
   vars:
     kong_bin: /usr/local/bin/kong
@@ -11,16 +11,12 @@
 
   tasks:
 
-    # =========================
-    # NORMALIZE SURVEY INPUT
-    # =========================
     - name: Normalize survey input
       set_fact:
         kong_action_final: "{{ kong_action | default('whoami') }}"
 
-    # =========================
-    # WHOAMI
-    # =========================
+    # READ-ONLY COMMANDS (NO SUDO)
+
     - name: Who am I
       raw: whoami
       register: whoami_out
@@ -31,9 +27,6 @@
         msg: "Executed as user: {{ whoami_out.stdout }}"
       when: kong_action_final == 'whoami'
 
-    # =========================
-    # KONG HEALTH
-    # =========================
     - name: Kong health
       raw: "{{ kong_bin }} health"
       register: kong_health
@@ -44,9 +37,6 @@
         msg: "{{ kong_health.stdout }}"
       when: kong_action_final == 'health'
 
-    # =========================
-    # KONG STATUS
-    # =========================
     - name: Kong status
       raw: "{{ kong_bin }} status"
       register: kong_status
@@ -57,9 +47,6 @@
         msg: "{{ kong_status.stdout }}"
       when: kong_action_final == 'status'
 
-    # =========================
-    # KONG VERSION
-    # =========================
     - name: Kong version
       raw: "{{ kong_bin }} version"
       register: kong_version
@@ -70,10 +57,7 @@
         msg: "{{ kong_version.stdout }}"
       when: kong_action_final == 'version'
 
-    # =========================
-    # ERROR LOGS
-    # =========================
-    - name: Kong error logs (last 50 lines)
+    - name: Kong error logs
       raw: "tail -n 50 {{ kong_error_log }}"
       register: kong_error_logs
       changed_when: false
@@ -83,10 +67,7 @@
         msg: "{{ kong_error_logs.stdout }}"
       when: kong_action_final == 'error_logs'
 
-    # =========================
-    # ACCESS LOGS
-    # =========================
-    - name: Kong access logs (last 50 lines)
+    - name: Kong access logs
       raw: "tail -n 50 {{ kong_access_log }}"
       register: kong_access_logs
       changed_when: false
@@ -96,10 +77,24 @@
         msg: "{{ kong_access_logs.stdout }}"
       when: kong_action_final == 'access_logs'
 
-    # =========================
-    # SAFE NOTICE FOR START/STOP/RESTART
-    # =========================
-    - name: Start/Stop/Restart not enabled (sudo disabled)
-      debug:
-        msg: "Start/Stop/Restart requires sudo. Enable passwordless sudo for kong user to use these actions."
-      when: kong_action_final in ['start', 'stop', 'restart']
+    # CONTROL COMMANDS (REQUIRE SUDO)
+
+    - name: Kong start
+      raw: "{{ kong_bin }} start"
+      become: true
+      when: kong_action_final == 'start'
+
+    - name: Kong stop
+      raw: "{{ kong_bin }} stop"
+      become: true
+      when: kong_action_final == 'stop'
+
+    - name: Kong reload
+      raw: "{{ kong_bin }} reload"
+      become: true
+      when: kong_action_final == 'reload'
+
+    - name: Kong restart
+      raw: "{{ kong_bin }} restart"
+      become: true
+      when: kong_action_final == 'restart'
