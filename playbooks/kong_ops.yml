@@ -11,7 +11,29 @@
 
   tasks:
 
-    # Normalize survey input
+    # ============================================================
+    # SHOW TARGET INFO (LIMIT LOGIC)
+    # ============================================================
+    - name: Show execution target
+      debug:
+        msg: |
+          =========================================
+          KONG ADHOC OPERATION
+          =========================================
+          Target Host     : {{ inventory_hostname }}
+          Inventory Groups: {{ group_names | join(', ') }}
+          AWX Limit       : {{ ansible_limit | default('NOT SET') }}
+          =========================================
+
+    # OPTIONAL: Enforce limit (recommended for prod)
+    - name: Fail if limit not provided
+      fail:
+        msg: "❌ You must provide a LIMIT (Kong host or group) before running adhoc commands"
+      when: ansible_limit is not defined
+
+    # ============================================================
+    # NORMALIZE SURVEY INPUT
+    # ============================================================
     - name: Normalize survey input
       set_fact:
         kong_action_final: "{{ kong_action | default('whoami') }}"
