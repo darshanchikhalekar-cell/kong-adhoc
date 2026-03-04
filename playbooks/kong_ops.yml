@@ -2,201 +2,178 @@
 - name: Kong Ops – Adhoc Operations
   hosts: all
   gather_facts: false
-  become: false
+  become: false   # default: no sudo
 
   vars:
     kong_bin: /usr/local/bin/kong
-    kong_conf: /etc/kong/kong.conf
     kong_error_log: /usr/local/kong/logs/error.log
     kong_access_log: /usr/local/kong/logs/access.log
 
   tasks:
 
-  # ============================================================
-  # SHOW TARGET INFO
-  # ============================================================
-  - name: Show execution target
-    debug:
-      msg: |
-        =========================================
-        KONG ADHOC OPERATION
-        =========================================
-        Target Host     : {{ inventory_hostname }}
-        Inventory Groups: {{ group_names | join(', ') }}
-        AWX Limit       : {{ ansible_limit | default('NOT SET') }}
-        =========================================
+    # ============================================================
+    # SHOW TARGET INFO (LIMIT LOGIC)
+    # ============================================================
+    - name: Show execution target
+      debug:
+        msg: |
+          =========================================
+          KONG ADHOC OPERATION
+          =========================================
+          Target Host     : {{ inventory_hostname }}
+          Inventory Groups: {{ group_names | join(', ') }}
+          AWX Limit       : {{ ansible_limit | default('NOT SET') }}
+          =========================================
 
-  - name: Fail if limit not provided
-    fail:
-      msg: "❌ You must provide a LIMIT (Kong host or group) before running adhoc commands"
-    when: ansible_limit is not defined
+    # OPTIONAL: Enforce limit (recommended for prod)
+    - name: Fail if limit not provided
+      fail:
+        msg: "❌ You must provide a LIMIT (Kong host or group) before running adhoc commands"
+      when: ansible_limit is not defined
 
-  # ============================================================
-  # NORMALIZE SURVEY INPUT
-  # ============================================================
-  - name: Normalize survey input
-    set_fact:
-      kong_action_final: "{{ kong_action | default('whoami') }}"
+    # ============================================================
+    # NORMALIZE SURVEY INPUT
+    # ============================================================
+    - name: Normalize survey input
+      set_fact:
+        kong_action_final: "{{ kong_action | default('whoami') }}"
 
-  # =========================
-  # WHOAMI
-  # =========================
-  - name: Who am I
-    command: whoami
-    register: whoami_out
-    changed_when: false
-    when: kong_action_final == 'whoami'
+    # =========================
+    # WHOAMI
+    # =========================
+    - name: Who am I
+      raw: whoami
+      register: whoami_out
+      changed_when: false
+      when: kong_action_final == 'whoami'
 
-  - name: Whoami result
-    debug:
-      msg: "👤 Executed as user: {{ whoami_out.stdout }}"
-    when: kong_action_final == 'whoami'
+    - name: Whoami result
+      debug:
+        msg: "Executed as user: {{ whoami_out.stdout }}"
+      when: kong_action_final == 'whoami'
 
-  # =========================
-  # KONG HEALTH
-  # =========================
-  - name: Kong health
-    command: "{{ kong_bin }} health -c {{ kong_conf }}"
-    register: kong_health
-    failed_when: false
-    changed_when: false
-    when: kong_action_final == 'health'
+    # =========================
+    # KONG HEALTH
+    # =========================
+    - name: Kong health
+      raw: "{{ kong_bin }} health"
+      register: kong_health
+      changed_when: false
+      when: kong_action_final == 'health'
 
-  - name: Kong health result
-    debug:
-      msg: |
-        =========================================
-        🩺 KONG HEALTH CHECK
-        =========================================
-        {{ kong_health.stdout }}
-        =========================================
-    when: kong_action_final == 'health'
+    - name: Kong health result
+      debug:
+        msg: "Kong health status: {{ kong_health.stdout }}"
+      when: kong_action_final == 'health'
 
-  # =========================
-  # KONG STATUS
-  # =========================
-  - name: Kong status
-    command: "{{ kong_bin }} status -c {{ kong_conf }}"
-    register: kong_status
-    failed_when: false
-    changed_when: false
-    when: kong_action_final == 'status'
+    # =========================
+    # KONG STATUS
+    # =========================
+    - name: Kong status
+      raw: "{{ kong_bin }} status"
+      register: kong_status
+      changed_when: false
+      when: kong_action_final == 'status'
 
-  - name: Kong status result
-    debug:
-      msg: |
-        =========================================
-        📊 KONG STATUS
-        =========================================
-        {{ kong_status.stdout }}
-        =========================================
-    when: kong_action_final == 'status'
+    - name: Kong status result
+      debug:
+        msg: "{{ kong_status.stdout }}"
+      when: kong_action_final == 'status'
 
-  # =========================
-  # KONG VERSION
-  # =========================
-  - name: Kong version
-    command: "{{ kong_bin }} version"
-    register: kong_version
-    changed_when: false
-    when: kong_action_final == 'version'
+    # =========================
+    # KONG VERSION
+    # =========================
+    - name: Kong version
+      raw: "{{ kong_bin }} version"
+      register: kong_version
+      changed_when: false
+      when: kong_action_final == 'version'
 
-  - name: Kong version result
-    debug:
-      msg: |
-        =========================================
-        📦 KONG VERSION
-        =========================================
-        {{ kong_version.stdout }}
-        =========================================
-    when: kong_action_final == 'version'
+    - name: Kong version result
+      debug:
+        msg: "Kong version: {{ kong_version.stdout }}"
+      when: kong_action_final == 'version'
 
-  # =========================
-  # ERROR LOGS
-  # =========================
-  - name: Kong error logs
-    command: "tail -n 50 {{ kong_error_log }}"
-    register: kong_error_logs
-    changed_when: false
-    when: kong_action_final == 'error_logs'
+    # =========================
+    # ERROR LOGS
+    # =========================
+    - name: Kong error logs
+      raw: "tail -n 50 {{ kong_error_log }}"
+      register: kong_error_logs
+      changed_when: false
+      when: kong_action_final == 'error_logs'
 
-  - name: Kong error logs result
-    debug:
-      msg: |
-        =========================================
-        ⚠️ KONG ERROR LOGS (Last 50 lines)
-        =========================================
-        {{ kong_error_logs.stdout }}
-        =========================================
-    when: kong_action_final == 'error_logs'
+    - name: Kong error logs result
+      debug:
+        msg: "{{ kong_error_logs.stdout }}"
+      when: kong_action_final == 'error_logs'
 
-  # =========================
-  # ACCESS LOGS
-  # =========================
-  - name: Kong access logs
-    command: "tail -n 50 {{ kong_access_log }}"
-    register: kong_access_logs
-    changed_when: false
-    when: kong_action_final == 'access_logs'
+    # =========================
+    # ACCESS LOGS
+    # =========================
+    - name: Kong access logs
+      raw: "tail -n 50 {{ kong_access_log }}"
+      register: kong_access_logs
+      changed_when: false
+      when: kong_action_final == 'access_logs'
 
-  - name: Kong access logs result
-    debug:
-      msg: |
-        =========================================
-        📄 KONG ACCESS LOGS (Last 50 lines)
-        =========================================
-        {{ kong_access_logs.stdout }}
-        =========================================
-    when: kong_action_final == 'access_logs'
+    - name: Kong access logs result
+      debug:
+        msg: "{{ kong_access_logs.stdout }}"
+      when: kong_action_final == 'access_logs'
 
-  # =========================
-  # KONG START
-  # =========================
-  - name: Kong start
-    command: "{{ kong_bin }} start -c {{ kong_conf }}"
-    become: true
-    when: kong_action_final == 'start'
+    # =========================
+    # KONG START
+    # =========================
+    - name: Kong start
+      raw: "{{ kong_bin }} start"
+      become: true
+      register: kong_start
+      when: kong_action_final == 'start'
 
-  - name: Kong start result
-    debug:
-      msg: "✅ Kong started successfully"
-    when: kong_action_final == 'start'
+    - name: Kong start result
+      debug:
+        msg: "✅ Kong started successfully"
+      when: kong_action_final == 'start'
 
-  # =========================
-  # KONG STOP
-  # =========================
-  - name: Kong stop
-    command: "{{ kong_bin }} stop -c {{ kong_conf }}"
-    become: true
-    when: kong_action_final == 'stop'
+    # =========================
+    # KONG STOP
+    # =========================
+    - name: Kong stop
+      raw: "{{ kong_bin }} stop"
+      become: true
+      register: kong_stop
+      when: kong_action_final == 'stop'
 
-  - name: Kong stop result
-    debug:
-      msg: "🛑 Kong stopped successfully"
-    when: kong_action_final == 'stop'
+    - name: Kong stop result
+      debug:
+        msg: "🛑 Kong stopped successfully"
+      when: kong_action_final == 'stop'
 
-  # =========================
-  # KONG RELOAD
-  # =========================
-  - name: Kong reload
-    command: "{{ kong_bin }} reload -c {{ kong_conf }}"
-    become: true
-    when: kong_action_final == 'reload'
+    # =========================
+    # KONG RELOAD
+    # =========================
+    - name: Kong reload
+      raw: "{{ kong_bin }} reload"
+      become: true
+      register: kong_reload
+      when: kong_action_final == 'reload'
 
-  - name: Kong reload result
-    debug:
-      msg: "🔄 Kong reloaded successfully"
-    when: kong_action_final == 'reload'
+    - name: Kong reload result
+      debug:
+        msg: "🔄 Kong reloaded successfully"
+      when: kong_action_final == 'reload'
 
-  # =========================
-  # KONG RESTART
-  # =========================
-  - name: Kong restart
-    command: "{{ kong_bin }} restart -c {{ kong_conf }}"
-    become: true
-    when: kong_action_final == 'restart'
+    # =========================
+    # KONG RESTART
+    # =========================
+    - name: Kong restart
+      raw: "{{ kong_bin }} restart"
+      become: true
+      register: kong_restart
+      when: kong_action_final == 'restart'
 
-  - name: Kong restart result
-    debug:
-      msg: "🔁 Kong restarted successfully"
-    when: kong_action_final == 'restart'
+    - name: Kong restart result
+      debug:
+        msg: "🔁 Kong restarted successfully"
+      when: kong_action_final == 'restart'
